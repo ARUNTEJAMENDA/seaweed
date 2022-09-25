@@ -1,0 +1,136 @@
+/**
+ * @author		Procurios (http://procurios.nl/)
+ * @requires	Prototype.js
+ * @param		{Object} settings object, id of carousel container
+ * @return		Public API, init() which initializes the carousel.
+ * @description This script animates a unordered list of images. A user can navigate the images to the left or the right.
+ * 				If no interaction is initiated the animation will start on a auto interval.
+ */
+
+var ONE = ONE || {};
+
+ONE.slideshow = function (slideshowContainerClass, delay, showNavigation) {
+
+	var counter = 0; // to keep track of current slide
+	var slideshowContainer = document.querySelector("." + slideshowContainerClass);
+	var slideshowImages = document.querySelectorAll("." + slideshowContainerClass + " .at-image");
+	var numImages = slideshowImages.length; // total number of slides
+	var slideTimeout = "";
+
+	delay = (delay * 1000) || 1000;
+	showNavigation = showNavigation || false;
+
+	/**
+	 * This function is what cycles the slides, showing the next or previous slide and hiding all the others
+	 * @private
+	 */
+	var showCurrent = function() {
+		var imageToShow = Math.abs(counter % numImages);// uses remainder (aka modulo) operator to get the actual index of the element to show
+		var i;
+
+		// remove .show from whichever element currently has it
+		// http://stackoverflow.com/a/16053538/2006057
+		for (i = 0; i < slideshowImages.length; i++) {
+			slideshowImages[i].classList.remove("show");
+		}
+
+		// add .show to the one item that's supposed to have it
+		slideshowImages[imageToShow].classList.add("show");
+
+		if (typeof(slideTimeout) === "number") {
+			window.clearTimeout(slideTimeout);
+			delete slideTimeout;
+		}
+
+		slideTimeout = window.setTimeout(function() {
+			if (isInViewport(slideshowContainer)) {
+				counter++;
+				if (counter >= slideshowImages.length) {
+					counter = 0;
+				}
+			}
+			showCurrent();
+		}, delay);
+	};
+
+	if (showNavigation && slideshowImages.length > 1) {
+		var nextImage = document.querySelector("." + slideshowContainerClass + " .at-is-next");
+		var previousImage = document.querySelector("." + slideshowContainerClass + " .at-is-previous");
+
+		if (window.addEventListener) {
+			nextImage.addEventListener("click", showNextImage);
+			previousImage.addEventListener("click", showPreviousImage);
+		} else {
+			// Use legacy click event (eg. for IE8-)
+			nextImage.attachEvent("onclick", showNextImage);
+			previousImage.attachEvent("onclick", showPreviousImage);
+		}
+	}
+
+	/**
+	 * Decrease current image counter
+	 * @private
+	 */
+	function showNextImage(event) {
+		(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+
+		counter ++;
+
+		if (counter >= slideshowImages.length) {
+			counter	= 0;
+		}
+
+		showCurrent();
+	}
+
+	/**
+	 * Increase current image counter
+	 * @private
+	 */
+	function showPreviousImage(event) {
+		(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+
+		counter --;
+
+		if (counter < 0) {
+			counter	= slideshowImages.length - 1;
+		}
+
+		showCurrent();
+	}
+
+	if (slideshowImages.length > 1) {
+		slideTimeout = window.setInterval(function () {
+			if (isInViewport(slideshowContainer)) {
+				counter++;
+				showCurrent();
+			}
+		}, delay);
+	}
+
+	/**
+	 * @param element
+	 * @returns {boolean}
+	 */
+	function isInViewport(element) {
+		// check if the bottom of the element is above the viewport height or 90% of the viewport height.
+		var viewportHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+		var tippingPointTop = viewportHeight;
+		var tippingPointBottom = viewportHeight;
+		var rect = element.getBoundingClientRect();
+		var rectTop = rect.top;
+		var rectBottom = rect.bottom;
+
+		return (tippingPointTop >= rectTop || rectBottom <= tippingPointBottom);
+	}
+
+	/**
+	 * Check on if large viewport
+	 *
+	 * @private
+	 * @returns {Boolean}
+	 */
+	function isMediumViewport() {
+		return window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+	}
+};

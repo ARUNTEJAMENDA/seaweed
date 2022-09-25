@@ -1,0 +1,288 @@
+define(function () {
+    'use strict';
+
+    /**
+     * @param {string} containerSelector - #id of .class
+     * @param {Object} config
+     * @constructor
+     */
+    function Video (containerSelector, config) {
+        if (!containerSelector || !config) {
+            return;
+        }
+
+        if (!config.videoType || !config.videoId || !config.videoPlaceHolderSelector) {
+            return;
+        }
+
+        if (config.videoType != 'vimeo') { // This script only supports vimeo
+            return;
+        }
+
+        /** constants */
+        this.playerOrigin = '*';
+        this.classes = {
+            videoIframe: 'at-tf-video-iframe',
+            videoStatePlaying: 'at-tf-video-playing',
+            videoStateAudioOn: 'at-tf-video-audioOn',
+            buttonPlay: 'at-tf-video-play',
+            buttonAudio: 'at-tf-video-audio',
+            isMobile: 'at-tf-mobile'
+        };
+
+        /** variables */
+        this.container = document.querySelector(containerSelector);
+        this.videoPlaceHolder = document.querySelector(config.videoPlaceHolderSelector);
+        this.videoId = config.videoId;
+        this.autoPlay = config.autoPlay;
+        this.isMobileOperatoinSystem = this.getMobileOperatingSystem();
+        this.playClickCount = 0;
+
+        /** functions */
+        this.container.addEventListener('click', this.clickHandler.bind(this));
+
+        if (this.isMobileOperatoinSystem) {
+            this.mobileVideoInit();
+            return;
+        }
+
+        this.addVideoIframe();
+        this.videoBackgroundCover();
+        window.addEventListener('message', this.onMessageReceived.bind(this));
+        window.addEventListener('resize', this.videoBackgroundCover.bind(this));
+    }
+
+    /**
+     * Handle video input controls outside of standard controls
+     * @param {Event} event
+     */
+    Video.prototype.clickHandler = function clickHandler (event) {
+        var element = event.target;
+
+        if (this.isMobileOperatoinSystem && element.classList.contains(this.classes.buttonPlay)) {
+            this.openMobileVideo();
+            return;
+        }
+
+        if (element.classList.contains(this.classes.buttonPlay)) {
+            this.togglePlay();
+            return;
+        }
+
+        if (element.classList.contains(this.classes.buttonAudio)) {
+            this.toggleVideoAudio();
+        }
+    };
+
+    /**
+     * When the video is loaded ...
+     * @param event
+     * @returns {boolean}
+     */
+    Video.prototype.onMessageReceived = function onMessageReceived (event) {
+        // Handle messages from the vimeo player only
+        if (!(/^https?:\/\/player.vimeo.com/).test(event.origin)) {
+            return false;
+        }
+
+        if (this.playerOrigin === '*') {
+            this.playerOrigin = event.origin;
+        }
+
+        var data = JSON.parse(event.data);
+
+        switch (data.event) {
+            case 'ready':
+                // Mute sound of Vimeo video by default
+                this.post('setVolume', '0');
+                break;
+        }
+    };
+
+    /**
+     * Add background video
+     */
+    Video.prototype.addVideoIframe = function addVideoIframe () {
+        var autoPlay = this.isOldIe() ? false : this.autoPlay;
+        var loop = 1;
+        var iframeElement = document.createElement('iframe');
+
+        iframeElement.classList.add(this.classes.videoIframe);
+        iframeElement.setAttribute('frameborder', '0');
+        iframeElement.setAttribute('loop', '');
+        iframeElement.setAttribute('webkitAllowFullScreen', '');
+        iframeElement.setAttribute('mozallowfullscreen', '');
+        iframeElement.setAttribute('allowFullScreen', '');
+        iframeElement.setAttribute('allow', 'autoplay');
+        iframeElement.src = 'https://player.vimeo.com/video/' + this.videoId +
+            '?api=1&autopause=0&autoplay=' + autoPlay + '&loop=' + loop +
+            'portrait=0&byline=0&title=0&badge=0&controls=0&background=1&rel=0';
+
+        this.iframeElement = iframeElement;
+        this.videoPlaceHolder.appendChild(this.iframeElement);
+
+        if (this.autoPlay) {
+            this.container.classList.add(this.classes.videoStatePlaying);
+        }
+    };
+
+    /**
+     * Optimize video to behave live 'background: cover' for a 9/16 video
+     */
+    Video.prototype.videoBackgroundCover = function videoBackgroundCover () {
+        var height = this.videoPlaceHolder.parentNode.offsetHeight;
+        var width = this.videoPlaceHolder.parentNode.offsetWidth;
+
+        if ((height / 9) > (width / 16)) {
+            var videoWidth = Math.round((height / 9) * 16);
+
+            this.videoPlaceHolder.style.position = 'absolute';
+            this.videoPlaceHolder.style.top = '';
+            this.videoPlaceHolder.style.left = 'calc(50% - ' + Math.round(videoWidth / 2) + 'px)';
+            this.videoPlaceHolder.style.width = videoWidth + 'px';
+            this.videoPlaceHolder.style.height = '';
+            return;
+        }
+
+        var videoHeight = Math.round((width / 16) * 9);
+
+        this.videoPlaceHolder.style.position = 'absolute';
+        this.videoPlaceHolder.style.top = 'calc(50% - ' + Math.round(videoHeight / 2) + 'px)';
+        this.videoPlaceHolder.style.left = '';
+        this.videoPlaceHolder.style.width = '';
+        this.videoPlaceHolder.style.height = videoHeight + 'px';
+    };
+
+    /**
+     * Anything special that needs to happen for mobile devices
+     */
+    Video.prototype.mobileVideoInit = function mobileVideoInit () {
+        this.container.classList.add(this.classes.isMobile);
+    };
+
+    /**
+     * Open media box to play 'normal' video in for mobile devices
+     */
+    Video.prototype.openMobileVideo = function openMobileVideo () {
+        var iframeElement = document.createElement('iframe');
+        var mediaWrapper = document.createElement('div');
+        var mediaContent = document.createElement('div');
+        var mediaClose = document.createElement('span');
+
+        mediaWrapper.classList.add('one-video-box-wrapper');
+        mediaContent.classList.add('one-video-box-content');
+        mediaClose.classList.add('one-video-box-close');
+
+        iframeElement.setAttribute('frameborder', '0');
+        iframeElement.setAttribute('webkitAllowFullScreen', '');
+        iframeElement.setAttribute('mozallowfullscreen', '');
+        iframeElement.setAttribute('allowFullScreen', '');
+        iframeElement.src = 'https://player.vimeo.com/video/' + this.videoId;
+
+        this.mediaWrapper = mediaWrapper;
+
+        mediaContent.appendChild(mediaClose);
+        mediaContent.appendChild(iframeElement);
+        mediaWrapper.appendChild(mediaContent);
+        document.body.appendChild(mediaWrapper);
+
+        mediaClose.addEventListener('click', this.closeMobileVideo.bind(this), false);
+    };
+
+    /**
+     * Close media box in which the mobile video plays
+     */
+    Video.prototype.closeMobileVideo = function closeMobileVideo () {
+        this.mediaWrapper.parentNode.removeChild(this.mediaWrapper);
+    };
+
+    /**
+     * Toggle video play state and icon
+     */
+    Video.prototype.togglePlay = function togglePlay () {
+        if (this.container.classList.contains(this.classes.videoStatePlaying)) {
+            this.post('pause', '1');
+            this.container.classList.remove(this.classes.videoStatePlaying);
+            return;
+        }
+
+        this.post('play', '1');
+        this.container.classList.add(this.classes.videoStatePlaying);
+        this.playClickCount ++;
+
+        // Turn on audio on first play
+        if (this.playClickCount === 1) {
+            this.post('setVolume', '1');
+            this.container.classList.add(this.classes.videoStateAudioOn);
+        }
+    };
+
+    /**
+     * Toggle video audio state and icon
+     */
+    Video.prototype.toggleVideoAudio = function toggleVideoSound () {
+        if (this.container.classList.contains(this.classes.videoStateAudioOn)) {
+            this.post('setVolume', '0');
+            this.container.classList.remove(this.classes.videoStateAudioOn);
+            return;
+        }
+
+        this.post('setVolume', '1');
+        this.container.classList.add(this.classes.videoStateAudioOn);
+    };
+
+    /**
+     * Post actions to video iFrame
+     * @param {string} action
+     * @param {string} value
+     */
+    Video.prototype.post = function post (action, value) {
+        var data = {
+            method: action
+        };
+
+        if (value) {
+            data.value = value;
+        }
+
+        var message = JSON.stringify(data);
+
+        this.iframeElement.contentWindow.postMessage(message, this.playerOrigin);
+    };
+
+    /**
+     * Check for mobile operation systems because they do not support auto playing video's in the background
+     * @returns {string|boolean}
+     */
+    Video.prototype.getMobileOperatingSystem = function getMobileOperatingSystem () {
+        var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+        // Windows Phone must come first because its UA also contains "Android"
+        if (/windows phone/i.test(userAgent)) {
+            return "Windows Phone";
+        }
+
+        if (/android/i.test(userAgent)) {
+            return "Android";
+        }
+
+        // iOS detection from: http://stackoverflow.com/a/9039885/177710
+        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+            return "iOS";
+        }
+
+        return false;
+    };
+
+    /**
+     * Check for old IE, because postMessage doesn't work there, so it should never auto play, because of audio
+     * @returns {boolean}
+     */
+    Video.prototype.isOldIe = function getIeVersion () {
+        return document.documentElement.classList.contains('ie9') ||
+            document.documentElement.classList.contains('ie8') ||
+            document.documentElement.classList.contains('ie7');
+    };
+
+    return Video;
+});

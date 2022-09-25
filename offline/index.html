@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VseaweedO</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="jquery.js"></script>
+    <link rel="icon" href="src/logo.png">
+</head>
+<body>
+    <header>
+        <div id="logo_container" class="dflex_row">
+            <img src="src/logo.png" alt="logo">
+            <span id="company_name" class="dflex_row">VseaweedO</span>
+        </div>
+        <div class="glass">
+            <video muted autoplay loop id="myVideo" poster="/offline/src/videos/poster.png">
+                <source id="source1" type="video/mp4" src="src/videos/sss.webm">
+                Your browser does not support HTML5 video.
+            </video>
+        </div>
+        <br>
+        <!-- <button id="mute-video" type="button">mute</button> -->
+        <script>
+            $(document).ready(function(){
+                // $("#mute-video").click(function () {if ($("video").prop('muted')) {$("video").prop('muted', false);$(this).text("mute");} else {$("video").prop('muted', true);$(this).text("unmute");}});
+            });
+        </script>
+    </header>
+</body>
+</html>

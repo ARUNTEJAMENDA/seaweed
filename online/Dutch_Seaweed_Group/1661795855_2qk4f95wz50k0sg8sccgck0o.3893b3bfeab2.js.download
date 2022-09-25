@@ -1,0 +1,1175 @@
+/**
+ * @description Common UI improvements, should be included in all variants.
+ */
+
+require(['domReady', 'pb/pblib', '/ui/uibase/script/3rdparty-libs/fasttap.js'], function (domReady, PbLib) {
+	'use strict';
+
+	/** @type {object} Contains references to frequently used DOM elements */
+	var elements = {};
+
+	/** @type {object} Contains classnames and id's to set or read */
+	var classes = {
+		scrollDownButton: 'at-js-scroll-down',
+		toggleMainMobileNav: 'toggle-main-mobile-nav',
+		mainMobileNavOpen: 'main-mobile-nav-open',
+		currentLanguage: 'current-language',
+		article: 'article',
+		siteWrapper: 'site-wrapper',
+		newsItem: 'newsitem',
+		newsTitle: 'newsitemtitle',
+		newsIntro: 'introduction',
+		newsArticle: 'news-article',
+        newsListItem: 'newslistitem',
+		scrollToTop: 'scroll-to-top',
+		stickyHeader: 'header-sticky',
+		headerOverlap: 'header-overlap',
+		galleryType1: 'pb-gt1-photos',
+		galleryType2: 'pb-gt2i-list',
+		noticeCloseButton: 'closebutton',
+		quoteBlock: 'at-af-quotes',
+		quote: 'at-af-quote',
+        quickSearchIsOpen: 'quick-search-is-open',
+        searchPage: 'mod-searchengine',
+        mobileContactInfo: 'mobileContactInfo',
+        mobileContactInfoItem: 'mobileContactInfo__item',
+        mobileContactInfoButton: 'mobileContactInfo__button',
+        mobileContactInfoIsOpen: 'mobileContactInfo--isOpen',
+        mobileContactInfoOverlay: 'mobileContactInfo__overlay',
+        atFixedSidebar: 'at-sidebar--fixed',
+        atSidebarIsFixed: 'at-sidebar--isFixed',
+        atSidebarIsSticky: 'at-sidebar--isSticky',
+        atSidebarIsHigher: 'at-sidebar--isHigher',
+        atSidebarHasBorder: 'at-sidebar--hasBorder'
+	};
+
+	/** @type {object} Contains stored properties that are used across multiple functions */
+	var store = {
+		didScroll: false,
+		lastScrollTop: 0,
+		delta: 10,
+		headerOverlap: false,
+        isSearchPage: false,
+		scrollInterval: 0,
+        count: 0,
+        fitsDesktopMenu: true,
+        headerHeight: 0,
+        isFixed: false,
+        isSticky: false
+	};
+
+	/**
+	 * Initialize common ONE optimizations
+	 *
+	 * @public
+	 */
+	function init () {
+	    elements.bodyElem = document.body;
+		elements.siteWrapper = document.querySelector('.' + classes.siteWrapper);
+		elements.mainNav = document.getElementById('nav-main');
+		elements.mainNavUl = elements.mainNav ? elements.mainNav.querySelector('ul') : false;
+		elements.navLinks = document.querySelectorAll('.nav a');
+		elements.mobileNavLinks = document.querySelectorAll('#m-nav a');
+		elements.header = document.getElementById('header');
+		elements.logo = document.getElementById('logo');
+		elements.headerWrapper = document.getElementById('header-wrapper');
+		elements.toggleMainMobileNavButton = document.getElementById('toggle-main-mobile-nav');
+		elements.scrollDownButtons = document.querySelectorAll('.' + classes.scrollDownButton);
+		elements.scrollToTopButton = document.querySelector('.' + classes.scrollToTop);
+		elements.currentLanguageMobile = document.querySelector('.mobile__languageContainer .' + classes.currentLanguage);
+        elements.currentLanguageDesktop = document.querySelector('.language-container .' + classes.currentLanguage);
+		elements.languageLinks = document.querySelectorAll('.language-selector a');
+		elements.photoGalleries = document.querySelectorAll('.' + classes.galleryType2);
+		elements.animateArticles = document.querySelectorAll('.animations-enabled .article');
+        elements.articlesWithAlignedTitles = document.querySelectorAll('div[data-align-titles]');
+        elements.articlesWithAlignedTexts = document.querySelectorAll('div[data-align-texts]');
+		elements.articlesWithAlignedButtons = document.querySelectorAll('div[data-align-buttons]');
+		elements.quoteBlocks = document.querySelectorAll('.' + classes.quoteBlock);
+		elements.noticeElement = document.querySelector('.notice');
+		elements.searchToggler = document.querySelector('.search-toggle');
+		elements.quickSearchForm = document.querySelector('#quick-search');
+		elements.searchField = document.querySelector('#searchfield');
+		elements.searchPagination = document.querySelector('.pagesTop');
+		elements.atFixedSidebars = document.querySelectorAll('.' + classes.atFixedSidebar);
+
+		// Floating button elements
+		elements.mobileContactInfo = document.querySelector('.' + classes.mobileContactInfo);
+		elements.mobileContactInfoItem = document.querySelectorAll('.' + classes.mobileContactInfoItem);
+        elements.mobileContactInfoButton = document.querySelector('.' + classes.mobileContactInfoButton);
+        elements.mobileContactInfoOverlay = document.querySelector('.' + classes.mobileContactInfoOverlay);
+
+		// News elements
+		elements.newsItem = document.querySelector('.' + classes.newsItem);
+		elements.newsTitle = document.body.classList.contains(classes.newsArticle) ? elements.newsItem.querySelector('.' + classes.newsTitle) : '';
+		elements.newsIntro = elements.newsItem ? elements.newsItem.querySelector('.' + classes.newsIntro) : '';
+		elements.newsFullStory = document.querySelector('.' + classes.newsArticle + ' .fullstory');
+		elements.newsListItems = document.querySelectorAll('.' + classes.newsListItem);
+		elements.newsTopBackContainer = document.querySelector('.news-article .article .newsitem-back:first-child');
+		elements.videos = document.querySelectorAll('iframe[src*=\'player.vimeo.com\'], iframe[src*=\'www.youtube\']');
+
+		store.isFastTapCapable = (PbLib.UI && PbLib.UI.FastTap && document.addEventListener && isTouchEnabled()) ? true : false;
+        store.viewportHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+        store.viewportWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+		store.headerIsSticky = elements.headerWrapper.classList.contains(classes.stickyHeader);
+		store.headerOverlap = document.body.classList.contains(classes.headerOverlap);
+        store.isSearchPage = document.body.classList.contains(classes.searchPage);
+		store.isMobileContactInfoOpen = false;
+		store.isConversionVariant = document.getElementById('variant--conversion');
+		store.headerHeight = parseInt(elements.bodyElem.getAttribute('data-header-height'));
+
+		// Call functions
+
+        handleOnResizeWindow(); // make sure they are called at least once
+        showMoreMobileContactInfo();
+        collectHeaderElementDimensions();
+        addClassToFirstOneArticleTemplate();
+
+        if (elements.currentLanguageMobile) {
+            elements.currentLanguageMobile.addEventListener('click', toggleMobileLanguageSelector);
+        }
+        if (elements.currentLanguageDesktop) {
+            elements.currentLanguageDesktop.addEventListener('click', toggleLanguageSelector);
+        }
+
+		if (store.headerIsSticky) {
+			showAndHideHeader();
+		}
+
+		if (elements.newsTitle && elements.newsIntro) {
+			moveNewsTitle();
+		}
+
+		if (elements.newsTopBackContainer) {
+		    optimizeNewsBackButtons();
+        }
+
+        if (elements.newsListItems.length > 0) {
+            makeNewsItemsClickable();
+        }
+
+        if (elements.newsFullStory) {
+            recognizeNewsArticle();
+        }
+
+		if (elements.photoGalleries.length > 0) {
+			changeGalleries();
+		}
+
+		if (elements.animateArticles.length > 0) {
+			triggerAnimation(true);
+		}
+
+        if (elements.articlesWithAlignedButtons.length > 0 && isMediumViewport()) {
+            window.addEventListener('load', alignArticleElements);
+        }
+
+        if (elements.searchPagination) {
+            optimizeSearchResultsPagination();
+        }
+
+        if (elements.quickSearchForm) {
+            elements.quickSearchForm.addEventListener('submit', preventEmptySubmit);
+        }
+
+        if (elements.scrollToTopButton && elements.mobileContactInfoItem.length < 0) {
+            handleOnScroll();
+        }
+
+        var scrollOffsetTop = getScrollOffsetTop();
+
+        if (elements.scrollToTopButton && scrollOffsetTop > 500 && store.fitsDesktopMenu === true) {
+            elements.scrollToTopButton.classList.add('active');
+        }
+
+        // Event handlers
+        showMoreMobileContactInfo();
+		addEmailaddressPlaceholder();
+
+		if (store.isFastTapCapable) {
+			var i;
+			// Set tap observer for modern browsers (including IE9+)
+			// Uses FastButton to kill click-event delay on mobile devices
+			// Click event is used as fallback for desktop browsers
+			for (i = 0; i < elements.scrollDownButtons.length; i++) {
+				new PbLib.UI.FastTap(elements.scrollDownButtons[i], onDocumentClickOrTouch);
+			}
+
+			for (i = 0; i < elements.navLinks.length; i++) {
+				new PbLib.UI.FastTap(elements.navLinks[i], onDocumentClickOrTouch);
+			}
+
+			if (elements.toggleMainMobileNavButton) {
+				new PbLib.UI.FastTap(elements.toggleMainMobileNavButton, onDocumentClickOrTouch);
+			}
+
+			if (elements.scrollToTopButton) {
+				new PbLib.UI.FastTap(elements.scrollToTopButton, onDocumentClickOrTouch);
+			}
+
+			if (elements.searchToggler) {
+			    new PbLib.UI.FastTap(elements.searchToggler, onDocumentClickOrTouch);
+            }
+
+            if (elements.mobileContactInfoButton) {
+                new PbLib.UI.FastTap(elements.mobileContactInfoButton, onDocumentClickOrTouch);
+            }
+
+            for (i = 0; i < elements.mobileNavLinks.length; i++) {
+                new PbLib.UI.FastTap(elements.mobileNavLinks[i], onDocumentClickOrTouch);
+            }
+
+		} else if (window.addEventListener) {
+			document.body.addEventListener('click', onDocumentClickOrTouch);
+		} else {
+			// Use legacy click event (eg. for IE8-)
+			document.body.attachEvent('onclick', onDocumentClickOrTouch);
+		}
+
+		if (window.addEventListener) {
+			// Initialize Event handler for window size changes.
+			window.addEventListener('resize', handleOnResizeWindow, false);
+			window.addEventListener('scroll', handleOnScroll, false);
+		}
+
+        isATSidebarHigher();
+        positionFixedATSidebar();
+	}
+
+	function toggleLanguageSelector (event) {
+        event.preventDefault();
+		event.target.parentElement.parentElement.parentElement.classList.toggle('languageSelectorOpen');
+	}
+
+    function toggleMobileLanguageSelector (event) {
+		event.preventDefault();
+		event.target.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.classList.toggle('mobileLanguageSelectorOpen');
+    }
+
+    /**
+     * Prevent third level sub navigation from exceeding the viewport on the right (based on 250px wide drop downs)
+     */
+	function preventNavigationFromExceedingViewport () {
+		var allSubNavLinks = document.querySelectorAll('.nav-main > ul > li > a.sub');
+
+		if (allSubNavLinks.length < 1) {
+		    return;
+        }
+
+		var lastSubNavLink = allSubNavLinks[allSubNavLinks.length - 1];
+        var positionLastSubNavLink = lastSubNavLink.getBoundingClientRect().left;
+        var positionFromRight = store.viewportWidth - positionLastSubNavLink;
+
+        if (positionFromRight < 485) {
+            lastSubNavLink.parentElement.classList.add('nav-main-fold-out-left');
+            return;
+		}
+
+		if (positionFromRight >= 485) {
+            lastSubNavLink.parentElement.classList.remove('nav-main-fold-out-left');
+        }
+    }
+
+    function collectHeaderElementDimensions () {
+	    var logo = document.querySelector('.header .logo');
+	    var mainNav = document.querySelector('.header .nav-main > ul');
+	    var languageCont = document.querySelector('.header .language-container');
+	    var searchCont = document.querySelector('.header .search-container');
+
+	    store.defaultLogoWidth = logo ? Math.ceil(logo.getBoundingClientRect().width) : 0;
+	    store.defaultMainNavWidth = mainNav ? Math.ceil(mainNav.getBoundingClientRect().width) : 0;
+	    store.defaultLanguageContWidth = languageCont ? Math.ceil(languageCont.getBoundingClientRect().width) : 0;
+	    store.defaultSearchContWidth = searchCont ? Math.ceil(searchCont.getBoundingClientRect().width) : 0;
+    }
+
+    function switchBetweenMobileAndDesktopMenu () {
+	    if (store.isConversionVariant) {
+	        return;
+        }
+
+	    if (!elements.header) {
+	        return;
+        }
+
+        var headerWidth = elements.header ? Math.ceil(elements.header.getBoundingClientRect().width) : false;
+	    var containerPadding = headerWidth * 0.12;
+	    var remainingSpace = headerWidth - containerPadding - store.defaultLogoWidth - store.defaultLanguageContWidth - store.defaultSearchContWidth;
+
+	    if (store.fitsDesktopMenu === false && isMediumViewport() && remainingSpace > store.defaultMainNavWidth) {
+	        elements.bodyElem.classList.add('desktop-menu-fits');
+            store.fitsDesktopMenu = true;
+        } else if (store.fitsDesktopMenu === true && remainingSpace <= store.defaultMainNavWidth) {
+            elements.bodyElem.classList.remove('desktop-menu-fits');
+            store.fitsDesktopMenu = false;
+        }
+
+        elements.header.classList.add('nav-main-fitment-calculated');
+    }
+
+	/**
+	 * Move news titel to introduction container
+	 * @private
+	 */
+	function moveNewsTitle () {
+		elements.newsIntro.insertBefore(elements.newsTitle, elements.newsIntro.firstChild);
+	}
+
+    /**
+     * Add home button and change back button text
+     * @private
+     */
+	function optimizeNewsBackButtons () {
+	    var textOverview = 'Overview';
+	    var textHome = 'Home';
+
+	    var backLink = elements.newsTopBackContainer.childNodes[0];
+	    backLink.innerHTML = textOverview;
+	    backLink.classList.add('newsitem-back-link');
+
+	    var homeLink = document.createElement('a');
+	    homeLink.href = '/';
+	    homeLink.innerHTML = textHome;
+	    homeLink.classList.add('newsitem-home-link');
+
+        elements.newsTopBackContainer.insertBefore(homeLink, backLink);
+        elements.newsTopBackContainer.classList.add('newsitem-back--optimized');
+    }
+
+    /**
+     * Add link over each news item to make the whole element clickable
+     * @private
+     */
+    function makeNewsItemsClickable () {
+        var i;
+
+        for (i = 0; i < elements.newsListItems.length; i++) {
+            var newsListItem = elements.newsListItems[i];
+            var newsLink = newsListItem.querySelector('.newsitemtitle a').href;
+
+            var overlayNewsLinkElement = document.createElement('a');
+            overlayNewsLinkElement.classList.add('newsitemoverlay');
+            overlayNewsLinkElement.href = newsLink;
+
+            newsListItem.appendChild(overlayNewsLinkElement);
+        }
+    }
+
+    function recognizeNewsArticle () {
+        elements.newsFullStory.parentNode.parentNode.classList.add('article_dynamic--noPadding');
+    }
+
+    function addClassToFirstOneArticleTemplate () {
+        var firstArticle = document.querySelector('.main-container .article');
+        var firstOneArticleTemplate = firstArticle ? firstArticle.querySelector('.at-one') : false;
+
+        if (firstOneArticleTemplate) {
+            firstOneArticleTemplate.parentElement.parentElement.classList.add('article_firstOneArticleTemplate');
+        }
+    }
+
+	function resizeVideos () {
+		// Figure out and save aspect ratio for each video
+		for (var i = 0; i < elements.videos.length; i++) {
+			var newWidth = elements.videos[i].parentNode.offsetWidth;
+
+			if (elements.videos[i].getAttribute('width') > 0) {
+				elements.videos[i].setAttribute(
+                    'data-aspectRatio',
+                    elements.videos[i].height / elements.videos[i].width
+                );
+				elements.videos[i].removeAttribute('height');
+				elements.videos[i].removeAttribute('width');
+			}
+
+			elements.videos[i].style.width = newWidth + 'px';
+			elements.videos[i].style.height = newWidth * elements.videos[i].getAttribute('data-aspectRatio') + 'px';
+		}
+	}
+
+	function changeGalleries () {
+		var firstImage;
+		var aspectRatio;
+
+		for (var i = 0; i < elements.photoGalleries.length; i++) {
+			firstImage = elements.photoGalleries[i].parentElement.querySelector('img');
+
+			if (firstImage.getAttribute('width')) {
+				aspectRatio = firstImage.getAttribute('width') / firstImage.getAttribute('height');
+				elements.photoGalleries[i].style.paddingTop = (100 / aspectRatio) + '%';
+			}
+		}
+	}
+
+	function alignArticleElements () {
+		for (var i = 0; i < elements.articlesWithAlignedTitles.length; i++) {
+            var pushTitleElements = elements.articlesWithAlignedTitles[i].querySelectorAll('.at-push-title');
+
+            setMinimumHeight(pushTitleElements);
+		}
+
+        for (var x = 0; x < elements.articlesWithAlignedTexts.length; x++) {
+            var pushTextElements = elements.articlesWithAlignedTexts[x].querySelectorAll('.at-push-text');
+
+            setMinimumHeight(pushTextElements);
+        }
+
+        for (var y = 0; y < elements.articlesWithAlignedButtons.length; y++) {
+            var pushButtonsElements = elements.articlesWithAlignedButtons[y].querySelectorAll('.at-push-button');
+
+            setMinimumHeight(pushButtonsElements);
+        }
+	}
+
+	function setMinimumHeight (alignElements) {
+        var minHeight = 0;
+
+        for (var i = 0; i < alignElements.length; i++) {
+            alignElements[i].style.minHeight = 0;
+            minHeight = Math.max(alignElements[i].offsetHeight, minHeight);
+        }
+
+        for (var x = 0; x < alignElements.length; x++) {
+            if (isMediumViewport()) {
+                alignElements[x].style.minHeight = minHeight + 'px';
+            } else {
+                alignElements[x].style.minHeight = '';
+            }
+        }
+    }
+
+	function setQuoteHeight () {
+		for (var i = 0; i < elements.quoteBlocks.length; i++) {
+			var quotes = elements.quoteBlocks[i].querySelectorAll('.' + classes.quote);
+			var minHeight = 0;
+			var j;
+
+			for (j = 0; j < quotes.length; j++) {
+				minHeight = Math.max(quotes[j].offsetHeight, minHeight);
+			}
+
+			elements.quoteBlocks[i].style.minHeight = minHeight + 'px';
+		}
+	}
+
+	/** ---- Process user interaction ---- */
+	/** ---- Navigation ---- */
+
+	function scrollToNextArticle (element) {
+		var parentArticle = getParentByClassName(element, classes.article);
+		var articleNextSibling;
+
+		if (parentArticle) {
+			articleNextSibling = parentArticle.nextElementSibling || nextElementSibling(parentArticle);
+			scrollToElement(articleNextSibling.id);
+		}
+	}
+
+	function triggerAnimation (initClass) {
+		var i = elements.animateArticles.length;
+
+		if (initClass) {
+			while (i--) {
+				if (isInViewport(elements.animateArticles[i], true)) {
+					elements.animateArticles[i].classList.add('active-no-animation');
+				} else {
+					elements.animateArticles[i].classList.add('animate');
+				}
+			}
+		} else if (keyFrameAnimationSupport()) {
+			// set a class active on any element which has an animation in it when it is at the
+            // right position on the screen
+			while (i--) {
+				if (!elements.animateArticles[i].classList.contains('active') &&
+					elements.animateArticles[i].classList.contains('animate') &&
+					isInViewport(elements.animateArticles[i], false)) {
+					elements.animateArticles[i].classList.add('active');
+				} else if (!elements.animateArticles[i].classList.contains('active') &&
+					elements.animateArticles[i].classList.contains('animate') &&
+					isInViewport(elements.animateArticles[i], false)) {
+					elements.animateArticles[i].classList.add('active');
+				}
+			}
+		} else {
+			// if transitions are not support set the animation elements active right away
+			while (i--) {
+				elements.animateArticles[i].classList.add('active');
+			}
+		}
+	}
+
+	/**
+	 * Move mobile navigation if viewport changes in size.
+	 * @private
+	 */
+
+	function toggleQuickSearch (event) {
+        if (!elements.searchToggler || !elements.searchField) {
+            return false;
+        }
+
+        (event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+
+        if (document.body.classList.contains(classes.quickSearchIsOpen)) {
+            elements.searchField.blur();
+            document.body.classList.remove(classes.quickSearchIsOpen);
+        } else {
+            document.body.classList.add(classes.quickSearchIsOpen);
+            document.body.classList.remove(classes.mainMobileNavOpen);
+            elements.searchField.focus();
+            elements.searchField.placeholder = 'Search on' + ' ' + window.location.hostname;
+        }
+    }
+
+    function showMoreMobileContactInfo () {
+        if (elements.mobileContactInfo) {
+            var mobileContactInfoAmount = elements.mobileContactInfoItem.length;
+
+            if (mobileContactInfoAmount > 1) {
+                elements.mobileContactInfo.classList.add('mobileContactInfo--showFloatingButton');
+            }
+        }
+
+        if (elements.scrollToTopButton && mobileContactInfoAmount > 0 && store.fitsDesktopMenu === true) {
+            elements.scrollToTopButton.classList.add('hidden');
+		}
+    }
+
+    function toggleMobileContactInfo () {
+        if (!elements.mobileContactInfo || !elements.mobileContactInfoButton) {
+            return false;
+        }
+
+        if (store.isMobileContactInfoOpen) {
+            elements.mobileContactInfo.classList.remove(classes.mobileContactInfoIsOpen);
+            elements.mobileContactInfoOverlay.classList.remove('mobileContactInfo__overlay--isOpen');
+            store.isMobileContactInfoOpen = false;
+        } else {
+            elements.mobileContactInfo.classList.add(classes.mobileContactInfoIsOpen);
+            elements.mobileContactInfoOverlay.classList.add('mobileContactInfo__overlay--isOpen');
+			store.isMobileContactInfoOpen = true;
+        }
+    }
+
+    function optimizeSearchResultsPagination () {
+        var pages = elements.searchPagination.childNodes;
+
+        if (pages.length <= 2) {
+            elements.searchPagination.parentNode.removeChild(elements.searchPagination);
+            return;
+        }
+
+        if (pages[0].innerHTML == '&lt;&lt;') {
+            pages[0].innerHTML = '&laquo;';
+        }
+
+        if (pages[pages.length - 1].innerHTML == '&gt;&gt;') {
+            pages[pages.length - 1].innerHTML = '&raquo;';
+        }
+    }
+
+    function preventEmptySubmit (event) {
+        if (elements.searchField.value === '') {
+            event.preventDefault();
+        }
+    }
+
+    /**
+     * Sticky behaviour of the header
+     *
+     * - large at the top (default)
+     * - hide when scrolling down (nav-up)
+     * - show small version at the bottom and scrolling up (nav-down)
+     */
+    function showAndHideHeader () {
+        setShowAndHideHeaderClasses();
+
+        store.scrollInterval = window.setInterval(function () {
+            if (store.didScroll) {
+                setShowAndHideHeaderClasses();
+                store.didScroll = false;
+            }
+        }, 200);
+    }
+
+    function setShowAndHideHeaderClasses () {
+        if (document.body.classList.contains(classes.mainMobileNavOpen)) {
+            return;
+        }
+
+        var scrollTop = (document.documentElement && document.documentElement.scrollTop ||
+            document.body && document.body.scrollTop ||
+            0);
+        var headerWrapperHeightPlusBoxShadow = elements.headerWrapper.offsetHeight + 8;
+
+        // Passed header height
+        if (scrollTop < elements.headerWrapper.offsetHeight) {
+            elements.headerWrapper.classList.remove('nav-up');
+            elements.headerWrapper.classList.remove('nav-down');
+            elements.headerWrapper.removeAttribute('style');
+            store.lastScrollTop = scrollTop;
+            setSubmenuTopPosition();
+            return;
+        }
+
+        // Bottom reached
+        if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
+            elements.headerWrapper.classList.remove('nav-up');
+            elements.headerWrapper.classList.add('nav-down');
+            elements.headerWrapper.removeAttribute('style');
+            store.lastScrollTop = scrollTop;
+            setSubmenuTopPosition();
+            return;
+        }
+
+        // Make sure they scroll more than 'delta' amount of pixels
+        if (Math.abs(store.lastScrollTop - scrollTop) <= store.delta) {
+            return;
+        }
+
+        // Scroll Down
+        if (scrollTop > store.lastScrollTop) {
+            elements.headerWrapper.classList.remove('nav-down');
+            elements.headerWrapper.classList.add('nav-up');
+            elements.headerWrapper.style.WebkitTransform = 'translateY(-' + headerWrapperHeightPlusBoxShadow + 'px)';
+            elements.headerWrapper.style.msTransform = 'translateY(-' + headerWrapperHeightPlusBoxShadow + 'px)';
+            elements.headerWrapper.style.transform = 'translateY(-' + headerWrapperHeightPlusBoxShadow + 'px)';
+            store.lastScrollTop = scrollTop;
+            setSubmenuTopPosition();
+            return;
+        }
+
+        // Scroll Up
+        if (scrollTop < store.lastScrollTop) {
+            elements.headerWrapper.classList.remove('nav-up');
+            elements.headerWrapper.classList.add('nav-down');
+            elements.headerWrapper.removeAttribute('style');
+            store.lastScrollTop = scrollTop;
+            setSubmenuTopPosition();
+        }
+    }
+
+    function addEmailaddressPlaceholder () {
+        var registerNewsletterField = document.querySelector('.mobile__newsletterArticle input[type="email"]');
+
+        if (!registerNewsletterField) {
+            return;
+        }
+
+        registerNewsletterField.placeholder = 'Email address';
+    }
+
+	/** ---- Event handling ---- */
+
+	/**
+	 * Handle on document clicks or touch events.
+	 * @private
+	 * @param {Event} event
+	 */
+	function onDocumentClickOrTouch (event) {
+		var element = event.srcElement || event.target;
+		var elementTagName = element.tagName.toUpperCase();
+		var parentElementTagName = element.parentElement.tagName.toUpperCase();
+		var isScrollDown = (element.classList.contains(classes.scrollDownButton) || getParentByClassName(element, classes.scrollDownButton) !== false);
+		var isToggleMainMobileNavButton = (element.classList.contains(classes.toggleMainMobileNav) || getParentByClassName(element, classes.toggleMainMobileNav) !== false);
+		var isLinkElementWithHash = (elementTagName === 'A' && element.hash) || (parentElementTagName === 'A' && element.parentElement.hash);
+		var isQuickSearch = element === elements.searchToggler;
+		var isMobileLanguageSelector = element === elements.currentLanguageMobile;
+		var isDesktopLanguageSelector = element === elements.currentLanguageDesktop;
+		var hasSubItems = store.isFastTapCapable ? element.classList.contains('sub') : false;
+		var isMobileContactInfoButton = (element.classList.contains(classes.mobileContactInfoButton) || getParentByClassName(element, classes.mobileContactInfoButton) !== false);
+
+		if (isScrollDown) {
+			// Scroll to next article
+			(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+
+			scrollToNextArticle(element);
+		} else if (isToggleMainMobileNavButton) {
+			(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+
+			// Toggle mobile navigation.
+			toggleClassName(document.body, classes.mainMobileNavOpen);
+            document.body.classList.remove(classes.quickSearchIsOpen);
+		} else if (hasSubItems) {
+			element.parentElement.classList.toggle('touch');
+			event.preventDefault();
+		} else if (isLinkElementWithHash) {
+			// Only open link with has if it is not a
+			var elementId = (elementTagName === 'A') ? element.hash.replace('#', '') : element.parentElement.hash.replace('#', '');
+			var targetElement = document.getElementById(elementId);
+			var currentUrlWithoutHash = document.URL.split('#')[0];
+			var targetUrlWithoutHash = (elementTagName === 'A') ? element.href.split('#')[0] : element.parentElement.href.split('#')[0];
+
+			if (targetElement && (currentUrlWithoutHash === targetUrlWithoutHash)) {
+				(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+                if (document.body.classList.contains(classes.mainMobileNavOpen)) {
+                    document.body.classList.remove(classes.mainMobileNavOpen);
+                }
+				scrollToElement(elementId);
+			} else {
+				window.location = element.href;
+			}
+        } else if (isQuickSearch) {
+            toggleQuickSearch(event);
+        } else if (isMobileContactInfoButton) {
+            toggleMobileContactInfo(event);
+		} else if (store.isFastTapCapable) {
+			if (element.target === '_blank') {
+				window.open(element.href, '_blank');
+			} else {
+				window.location = element.href;
+			}
+		}
+	}
+
+	/**
+	 * Handle on resize window to move mobile navigation
+	 */
+	function handleOnResizeWindow () {
+		// First of all, create a timer to prevent this function firing hundreds of times during the resize event
+		if (typeof (store.resizeTo) === 'number') {
+			window.clearTimeout(store.resizeTo);
+			delete store.resizeTo;
+		}
+
+		store.resizeTo = function () {
+            store.viewportHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+            store.viewportWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+
+            preventNavigationFromExceedingViewport();
+            switchBetweenMobileAndDesktopMenu();
+
+			if (elements.videos.length > 0) {
+				resizeVideos();
+			}
+
+            if (elements.articlesWithAlignedTitles.length > 0 ||
+                elements.articlesWithAlignedTexts.length > 0 ||
+                elements.articlesWithAlignedButtons.length > 0) {
+                alignArticleElements();
+            }
+
+			if (elements.quoteBlocks.length > 0) {
+				setQuoteHeight();
+			}
+
+            if (elements.mobileContactInfoItem.length > 0 && store.fitsDesktopMenu === true && elements.scrollToTopButton) {
+                elements.scrollToTopButton.classList.remove('hidden');
+            } else if (elements.mobileContactInfoItem.length > 0 && store.fitsDesktopMenu === false && elements.scrollToTopButton) {
+                elements.scrollToTopButton.classList.add('hidden');
+            }
+
+            isATSidebarHigher();
+            positionSidebarWhenIsFixedOrSticky();
+		}.delay(0.1);
+	}
+
+	/**
+	 * Handle on scroll events.
+	 */
+	function handleOnScroll () {
+		store.didScroll = true;
+
+		var scrollOffsetTop = getScrollOffsetTop();
+
+		if (elements.currentLanguage) {
+			elements.currentLanguage.parentElement.classList.remove('active');
+		}
+
+		if (scrollOffsetTop > 500 && elements.scrollToTopButton) {
+			elements.scrollToTopButton.classList.add('active');
+		} else if (elements.scrollToTopButton) {
+			elements.scrollToTopButton.classList.remove('active');
+		}
+
+        if (elements.mobileContactInfoItem.length > 0 && store.fitsDesktopMenu === true && elements.scrollToTopButton) {
+            elements.scrollToTopButton.classList.remove('hidden');
+        } else if (elements.mobileContactInfoItem.length > 0 && store.fitsDesktopMenu === false && elements.scrollToTopButton) {
+            elements.scrollToTopButton.classList.add('hidden');
+		}
+
+		store.animationTrigger = window.requestAnimationFrame(function () {
+			triggerAnimation();
+		});
+
+		positionFixedATSidebar();
+	}
+
+	function positionFixedATSidebar() {
+	    if (!isMediumViewport()) {
+	        return;
+        }
+
+        var sidebars = elements.atFixedSidebars;
+
+        for (var i = 0; i < sidebars.length; i++) {
+            var sidebar = sidebars[i];
+            var sidebarTop = sidebar.getBoundingClientRect().top;
+            var sidebarBottom = sidebar.getBoundingClientRect().height + store.headerHeight;
+            var wrapper = sidebar.parentNode.parentNode;
+
+            var wrapperTop = wrapper.getBoundingClientRect().top;
+            var wrapperBottom = wrapper.getBoundingClientRect().bottom;
+
+            var isFixed = sidebar.classList.contains(classes.atSidebarIsFixed);
+            var isSticky = sidebar.classList.contains(classes.atSidebarIsSticky);
+            var isHigher = sidebar.classList.contains(classes.atSidebarIsHigher);
+
+            var setSidebarSticky = !isSticky && sidebarBottom >= wrapperBottom && !isHigher;
+            var setSidebarFixedOnTheWayBack = !isFixed && isSticky && sidebarTop >= store.headerHeight && !isHigher;
+            var resetSidebar = (isFixed && wrapperTop >= store.headerHeight) || isHigher;
+            var setSidebarFixed = !isFixed && !isSticky && sidebarTop <= store.headerHeight && !isHigher;
+
+            if (setSidebarSticky) {
+                sidebar.classList.remove(classes.atSidebarIsFixed);
+                sidebar.classList.add(classes.atSidebarIsSticky);
+                addAbsoluteSidebarStyles(sidebar);
+                continue;
+            }
+
+            if (setSidebarFixedOnTheWayBack) {
+                sidebar.classList.remove(classes.atSidebarIsSticky);
+                sidebar.classList.add(classes.atSidebarIsFixed);
+                addFixedSidebarStyles(sidebar);
+                continue;
+            }
+
+            if (resetSidebar) {
+                sidebar.classList.remove(classes.atSidebarIsFixed);
+                sidebar.classList.remove(classes.atSidebarIsSticky);
+                sidebar.removeAttribute('style');
+                continue;
+            }
+
+            if (setSidebarFixed) {
+                sidebar.classList.add(classes.atSidebarIsFixed);
+                addFixedSidebarStyles(sidebar);
+            }
+        }
+    }
+
+    function isATSidebarHigher() {
+        if (!isMediumViewport()) {
+            return;
+        }
+
+        var sidebars = elements.atFixedSidebars;
+
+        for (var i = 0; i < sidebars.length; i++) {
+            var sidebar = sidebars[i];
+            var sidebarHeight = sidebar.offsetHeight;
+            var wrapper = sidebar.parentNode.parentNode;
+            var wrapperHeight = Math.floor(wrapper.getBoundingClientRect().height);
+            var windowHeight = window.innerHeight;
+
+            var isHigher = sidebar.classList.contains(classes.atSidebarIsHigher);
+
+            if (isHigher && sidebarHeight < wrapperHeight && sidebarHeight + store.headerHeight < windowHeight) {
+                sidebar.classList.remove(classes.atSidebarIsHigher);
+                continue;
+            }
+
+            if (sidebarHeight >= wrapperHeight && !isHigher) {
+                sidebar.classList.add(classes.atSidebarIsHigher);
+            }
+
+            if (sidebarHeight + store.headerHeight >= windowHeight && !isHigher) {
+                sidebar.classList.add(classes.atSidebarIsHigher);
+            }
+        }
+    }
+
+    function positionSidebarWhenIsFixedOrSticky() {
+        var sidebars = elements.atFixedSidebars;
+
+        for (var i = 0; i < sidebars.length; i++) {
+            var sidebar = sidebars[i];
+
+            if (!isMediumViewport()) {
+                sidebar.classList.remove(classes.atSidebarIsFixed);
+                sidebar.removeAttribute('style');
+                return;
+            }
+
+            var isFixed = sidebar.classList.contains(classes.atSidebarIsFixed);
+            var isSticky = sidebar.classList.contains(classes.atSidebarIsSticky);
+
+            if (isSticky) {
+                addAbsoluteSidebarStyles(sidebar);
+            }
+
+            if (isFixed) {
+                addFixedSidebarStyles(sidebar);
+            }
+        }
+    }
+
+    function addFixedSidebarStyles(sidebar) {
+        var container = sidebar.parentNode;
+        var borderLeftWidth = sidebar.classList.contains(classes.atSidebarHasBorder) ? 1 : 0;
+        var containerWidth = container.getBoundingClientRect().width - borderLeftWidth;
+        var right = document.body.clientWidth - container.getBoundingClientRect().right;
+
+	    var styles = [
+	        'width: ' + containerWidth + 'px;' +
+	        'right: ' + right + 'px;'
+        ];
+        sidebar.setAttribute('style', styles);
+    }
+
+    function addAbsoluteSidebarStyles(sidebar) {
+        var container = sidebar.parentNode;
+        var borderLeftWidth = sidebar.classList.contains(classes.atSidebarHasBorder) ? 1 : 0;
+        var containerWidth = container.getBoundingClientRect().width - borderLeftWidth;
+
+        var styles = [
+            'width: ' + containerWidth + 'px;'
+        ];
+        sidebar.setAttribute('style', styles);
+    }
+
+	function setSubmenuTopPosition (stopRepeat) {
+        /** make sure the foldout menu aligns with the small sticky header */
+		var headerHeight = elements.header.clientHeight;
+		var secondLevelMenus = document.querySelectorAll('.nav-main > ul > li > .sub + ul');
+
+		for (var i = 0; i < secondLevelMenus.length; i++) {
+			secondLevelMenus[i].style.top = headerHeight + 'px';
+		}
+
+		if (!stopRepeat) {
+            setTimeout(function() {
+                setSubmenuTopPosition(true);
+            }, 400);
+        }
+	}
+
+	/** ---- Generic helper functions ---- */
+
+	/**
+	 * Check if device supports touch
+	 * @returns {Boolean}
+	 */
+
+	function isTouchEnabled () {
+		return 'ontouchstart' in window || navigator.maxTouchPoints;
+	}
+
+	/**
+	 * Check on if large viewport
+	 *
+	 * @private
+	 * @returns {Boolean}
+	 */
+	function isMediumViewport () {
+		return window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+	}
+
+	/**
+     * @param {Object} element
+     * @param {Boolean} evenALittleBit
+	 * @returns {Boolean}
+	 */
+	function isInViewport (element, evenALittleBit) {
+		// check if the bottom of the element is above the viewport height or 77% of the viewport height.
+		var parcel = (evenALittleBit ? .99 : 0.68);
+		var tippingPointTop = store.viewportHeight * parcel;
+		var tippingPointBottom = store.viewportHeight;
+		var rect = element.getBoundingClientRect();
+		var rectTop = rect.top;
+		var rectBottom = rect.bottom;
+
+		return (tippingPointTop > rectTop || rectBottom < tippingPointBottom);
+	}
+
+	/**
+	 * Try to find parent node for element by className
+	 *
+	 * @private
+	 * @param {Object} element
+	 * @param {string} className
+	 * @returns {*}
+	 */
+	function getParentByClassName (element, className) {
+		while (element.parentNode) {
+			if (element.classList && element.classList.contains(className)) {
+				return element;
+			}
+			element = element.parentNode;
+		}
+		return false;
+	}
+
+	/**
+	 * Return the next sibling element.
+	 *
+	 * @private
+	 * @param {Object} element
+	 * @returns {Object}
+	 */
+	function nextElementSibling (element) {
+		do {
+			element = element.nextSibling;
+		} while (element && element.nodeType !== 1);
+		return element;
+	}
+
+	/**
+	 * Toggle class on element
+	 *
+	 * @private
+	 * @param {Object} element
+	 * @param {String} className
+	 */
+	function toggleClassName (element, className) {
+		if (element.classList) {
+			element.classList.toggle(className);
+		} else {
+			var elemClasses = element.className.split(' ');
+			var existingIndex = -1;
+			var i;
+
+			for (i = elemClasses.length; i--;) {
+				if (elemClasses[i] === className) {
+					existingIndex = i;
+				}
+			}
+
+			if (existingIndex >= 0) {
+				elemClasses.splice(existingIndex, 1);
+			} else {
+				elemClasses.push(className);
+			}
+
+			element.className = elemClasses.join(' ');
+		}
+	}
+
+	/**
+	 * Scroll to element with specific id
+	 *
+	 * @private
+	 * @param {string} id
+	 */
+	function scrollToElement (id) {
+		var doc = document.documentElement;
+        var body = document.body;
+		var scrollTop = (doc && doc.scrollTop || body && body.scrollTop || 0);
+		var scrollToThisElement = document.getElementById(id);
+
+		// Fixes bug in iOS Safari after scrolling back to top.
+		if (scrollTop === 0) {
+			window.scrollTo(0, 1);
+		}
+
+		// Scroll to the element with the scrollId as ID.
+		smoothScroll(scrollToThisElement);
+	}
+
+	function keyFrameAnimationSupport () {
+		var animation = false;
+		var animationString = 'animation';
+		var keyFramePrefix = '';
+		var domPrefixes = 'Webkit Moz O ms Khtml'.split(' ');
+		var pfx = '';
+		var i;
+
+		if (document.body.style.animationName !== undefined) {
+			animation = true;
+		}
+
+		if (animation === false) {
+			for (i = 0; i < domPrefixes.length; i++) {
+				if (document.body.style[domPrefixes[i] + 'AnimationName'] !== undefined) {
+					pfx = domPrefixes[i];
+					animationString = pfx + 'Animation';
+					keyFramePrefix = '-' + pfx.toLowerCase() + '-';
+					animation = true;
+					break;
+				}
+			}
+		}
+		return animation;
+	}
+
+	/**
+	 * Smooth scroll to given element or scroll location.
+	 * @param {Object} element
+	 * @param {int} duration
+	 * @param {Object} callback
+	 */
+	function smoothScroll (element, duration, callback) {
+		duration = duration || 500;
+		var start = window.pageYOffset;
+		var end;
+
+		if (typeof element === 'number') {
+			end = parseInt(element);
+		} else {
+			end = smoothScrollGetTop(element);
+		}
+
+		var clock = Date.now();
+		var step = function () {
+			var elapsed = Date.now() - clock;
+			window.scroll(0, smoothScrollPosition(start, end, elapsed, duration));
+			if (elapsed > duration) {
+				if (typeof callback === 'function') {
+					callback(element);
+				}
+			} else {
+				store.scrollStep = window.requestAnimationFrame(step);
+			}
+		};
+		step();
+	}
+
+	/**
+	 * Get the top position of an element in the document.
+	 * @param {Object} element
+	 * @returns {int}
+	 */
+	function smoothScrollGetTop (element) {
+		// return value of html.getBoundingClientRect().top ... IE : 0, other browsers : -pageYOffset
+		if (element.nodeName === 'HTML') {
+			return -window.pageYOffset;
+		}
+
+		// If top of the element is less then pageYOffset, scroll up.
+		if (element.getBoundingClientRect().top < window.pageYOffset) {
+			return element.getBoundingClientRect().top + getScrollOffsetTop();
+		}
+
+		return element.getBoundingClientRect().top + window.pageYOffset;
+	}
+
+	// ease in out function thanks to:
+	// http://blog.greweb.fr/2012/02/bezier-curve-based-easing-functions-from-concept-to-implementation/
+	function easeInOutCubic (t) {
+		return t < .5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+	}
+
+	function getScrollOffsetTop () {
+		var doc = document.documentElement;
+		var body = document.body;
+
+		return (doc && doc.scrollTop || body && body.scrollTop || 0);
+	}
+
+	/**
+	 * Calculate the scroll position we should be in given the start and end point of the scroll
+     * the time elapsed from the beginning of the scroll and the total duration of the scroll (default 500ms).
+	 * @param {int} start
+	 * @param {int} end
+	 * @param {int} elapsed
+	 * @param {int} duration
+	 * @returns {*}
+	 */
+	function smoothScrollPosition (start, end, elapsed, duration) {
+		if (elapsed > duration) {
+			return end;
+		}
+
+		return start + (end - start) * easeInOutCubic(elapsed / duration);
+	}
+
+	domReady(init);
+});

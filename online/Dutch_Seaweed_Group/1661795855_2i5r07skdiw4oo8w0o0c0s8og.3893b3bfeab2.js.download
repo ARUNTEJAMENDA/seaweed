@@ -1,0 +1,140 @@
+/**
+ * @todo Merge ProtoFish with this file into a single menu handler unit thingy
+ * @type {PbLib|*|{}}
+ * @important by using this script a category can no longer act as a page
+ * @optimize    FastTap - use PbLib.UI.FastTap to optimize the touch response
+ *
+ * The classic dropdown menu opens on hover. This script makes this work on click (or touch) instead. By default it
+ * only works on touch devices but can always be on. Making use of FastTap makes it more responsive on touch devices.
+ *
+ * Put this javascript in your html files:
+ * <script src='##pathdefaultui##/script/3rdparty-libs/fasttap.js'></script>
+ * <script src='##pathdefaultui##/script/pblib/navCategoriesOnClick.js'></script>
+ * <script>
+ *     PbLib.UI.navCategoriesOnClick("element", "className", touchOnly);
+ * </script>
+ *
+ * 'navSelector': Class name of the element / container of which holds the navigation, for example: ".nav-main" (string).
+ * 'className': Class name which should be used to emulate a hover (optional - string, "hover" by default).
+ * 'touchOnly': Only use the pretend hover on touch devices? (optional - boolean, true by default).
+ */
+
+window.PbLib = window.PbLib || {};
+PbLib.UI = PbLib.UI || {};
+
+PbLib.UI.navCategoriesOnClick = function (navSelector, className, touchOnly) {
+	var navComponents = (navSelector !== "") ? $$(navSelector) : false,
+		isFastTapCapable = (PbLib.UI && PbLib.UI.FastTap && $(document).addEventListener && isTouchEnabled() ) ? true : false;
+
+	className = (className) ? className : "hover";
+	touchOnly = (touchOnly !== false) ? true : false;
+
+	// check if everything is here
+	if (navComponents && ((touchOnly === true && isTouchEnabled() === true) || touchOnly === false)) {
+		for (var i = 0; i < navComponents.length; i++) {
+			setEventHandlers(navComponents[i]);
+		}
+	}
+
+	function setEventHandlers (navComponent) {
+		var bodyChildren = $(document.body).childElements(),
+			l = bodyChildren.length,
+			i;
+
+		for (i = 0; i < l; i++) {
+			var child = bodyChildren[i];
+
+			child.on("click", resetMenu);
+		}
+
+		var subMenuElements = navComponent.select("a.sub");
+		l = subMenuElements.length;
+
+		for (i = 0; i < l; i++) {
+			var subMenuElem = subMenuElements[i];
+
+			if (isFastTapCapable === true) {
+				new PbLib.UI.FastTap(subMenuElem, openCloseMenu);
+			} else {
+				subMenuElem.on("click", openCloseMenu);
+			}
+		}
+	}
+
+	/**
+	 * Set class on clicked element
+	 * Remove from others first
+	 */
+
+	function openCloseMenu (event) {
+        event.preventDefault();
+        var navElem = event.element();
+        var navElemParent = navElem.parentNode;
+        var navElemItems = navElemParent.querySelector('ul').children; // All <li>'s on the second level
+
+		if (navElemParent.classList.contains(className)) {
+			// Turn the nodeList into an array so we can reverse the order
+			var navElemItemsArray = [].slice.call(navElemItems);
+			var navElemItemsArrayReversedOrder = navElemItemsArray.reverse();
+
+			for (i = 0; i < navElemItemsArrayReversedOrder.length; i++) {
+                navElemItemsArrayReversedOrder[i].style.transitionDelay = (i * 50) + 'ms';
+				navElemItemsArrayReversedOrder[i].classList.remove('isMoved');
+			}
+            navElemParent.classList.remove(className);
+		} else {
+            for (var j = 0; j < navElemItems.length; j++) {
+                navElemItems[j].style.transitionDelay = (j * 50) + 'ms';
+                navElemItems[j].classList.add('isMoved');
+            }
+            navElemParent.classList.add(className);
+		}
+	}
+
+	/**
+	 * Remove set class from all elements on which it's set
+	 */
+
+	function resetMenu (event) {
+		var element = event.element();
+
+		if (element && !element.up(navSelector)) {
+			// Reset everything
+			var activeCategories = $(document.body).select("." + className),
+				l = activeCategories.length,
+				i;
+
+			for (i = 0; i < l; i++) {
+				if (isCategory(activeCategories[i]) === true) {
+					activeCategories[i].removeClassName(className);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check if device supports touch
+	 * @returns {Boolean}
+	 */
+
+	function isTouchEnabled () {
+		if ('ontouchstart' in window) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if element is a category
+	 * @returns {Boolean}
+	 */
+
+	function isCategory (element) {
+		if (element.down("a.sub")) {
+			return true;
+		}
+
+		return false;
+	}
+};
