@@ -12,8 +12,8 @@
 <body>
     <header>
         <div id="logo_container" class="dflex_row">
-            <img src="src/logo.png" alt="logo">
-            <span id="company_name" class="dflex_row">VseaweedO</span>
+            <img id="logo" src="src/logo.png" alt="logo">
+            <img id="company_name" src="SRC/IMAGES/vseaweedop 3d.png" alt="LOGO">
         </div>
         <div class="glass">
             <video muted autoplay loop id="myVideo" poster="src/videos/poster.webp">
@@ -21,7 +21,6 @@
                 Your browser does not support HTML5 video.
             </video>
         </div>
-        <br>
         <!-- <button id="mute-video" type="button">mute</button> -->
         <script>
             $(document).ready(function(){
@@ -29,7 +28,10 @@
             });
         </script>
     </header>
-    <section id="one"></section>
+    <section id="one" class="dflex_row">
+        <div class="background"><div class="water"></div></div>
+        <svg><defs><filter id="turbulence" x="0" y="0" width="100%" height="100%"><feTurbulence id="sea-filter" numOctaves="3" seed="2" baseFrequency="0.02 0.05"></feTurbulence><feDisplacementMap scale="20" in="SourceGraphic"></feDisplacementMap><animate xlink:href="#sea-filter" attributeName="baseFrequency" dur="60s" keyTimes="0;0.5;1" values="0.02 0.06;0.04 0.08;0.02 0.06" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0 0.75 1;0.25 0 0.75 1"/></filter></defs></svg>
+    </section>
     <section id="two"></section>
     <section id="three"></section>
     <section id="four"></section>

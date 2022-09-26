@@ -3,13 +3,13 @@
     padding:0;
 }
 html{
-    overflow:hidden;
+    overflow-x:hidden;
 }
 body{
-    background:rgb(2, 38, 67);
+    background:rgb(255, 255, 255);
 }
 body::-webkit-scrollbar{
-    /* width:5px; */
+    width:5px;
     background-color: transparent;
 }
 body::-webkit-scrollbar-track{
@@ -17,7 +17,7 @@ body::-webkit-scrollbar-track{
 }
 body::-webkit-scrollbar-thumb{
     background-color:rgb(3, 174, 180);
-    border-radius: 50%;
+    /* border-radius: 50%; */
 }
 header{
     /* padding:10px; */
@@ -64,25 +64,19 @@ video::after{
     z-index: 2;
     transition: 0.2s;
 }
-#logo_container img{
+#logo_container #logo{
     height:100%;
     z-index: 3;
 }
 #company_name{
-    width:0;
-    font-size: 0px;
     opacity: 0;
-    color:rgb(5, 176, 239);
-    align-items: center;
+    width:0;
     transition: 0.2s;
 }
 #logo_container:hover #company_name{
-    display: flex;
-    align-items: center;
-    width:50%;
-    font-size: 35px;
+    width:100%;
     opacity: 1;
-    margin-left:10px;
+
 }
 #mute-video{
     position:absolute;
@@ -142,3 +136,43 @@ video::after{
         font-size: 20px;
     }
 }
+
+#one{
+    height:80vh;
+    background:grey;
+    justify-content: center;
+    align-items: center;
+}
+
+/*  */
+.background {
+    /* position: absolute; */
+    /* top: 0; */
+    /* left: 0; */
+    height: 100px;
+    width: 100px;
+    background-image: url("src/logo.png");
+    background-size: cover;
+  }
+  
+  .background .water {
+    /* position: absolute; */
+    /* background-image: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/373299/sea-map.png"); */
+    background-image: url("src/logo.png");
+    background-size: cover;
+    /* top:0; */
+    /* left:0; */
+    height: 100%;
+    width: 100%;
+    filter: url("#turbulence");
+  }
+  .credit {
+    background-color: #fff;
+    /* position: absolute; */
+    /* top: 0; */
+    /* left: 0; */
+    padding: 5px;
+    z-index: 9999999;
+    margin: 0;
+  }
+  

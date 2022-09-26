@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="jquery.js"></script>
+    <script>
+        $(document).ready(function(){
+            // alert("ready")
+            setInterval(function(){
+                $("#circle").fadeIn(500);
+                setInterval(function(){
+                    $("#logo").show(500);
+                    setInterval(function(){
+                        $("#links").show(1000)
+                    },500)
+                },1000)
+            },1000);
+
+
+            $(window).resize(() => {
+                // location.reload();
+                $("#circle").hide();
+                $("#logo").hide();
+                $("#links").hide();
+                setInterval(function(){
+                    $("#circle").fadeIn(500);
+                    setInterval(function(){
+                        $("#logo").show(500);
+                        setInterval(function(){
+                            $("#links").show(1000)
+                        },500)
+                    },1000)
+                },1000);
+
+                $("#logo1").hide();
+                setInterval(function(){
+                $("#logo1").show(500);
+                },1000);
+            })
+        })
+    </script>
+</head>
+<body>
+    <div class="container con1">
+        <video muted autoplay loop width="100%">
+            <source src="videos/sss.webm">
+        </video>
+        <div class="display" id="circle">
+            <div class="circle">
+                <img class="logo" id="logo" src="images/vseaweedo white 3d.png" width="100%">
+    
+                <div class="links" id="links">
+                    <div class="span" style="--i:1"><a class="link link1" href="#" >Contact</a></div>
+                    <div class="span" style="--i:2"><a class="link link2" href="#" >Approach</a></div>
+                    <div class="span" style="--i:3"><a class="link link3" href="#" >News</a></div>
+                    <div class="span" style="--i:4"><a class="link link4" href="#" >Certificates</a></div>
+                    <div class="span" style="--i:5"><a class="link link5" href="#" >Jobs</a></div>
+                    <div class="span" style="--i:6"><a class="link link6" href="#" >Products</a></div>
+                    <div class="span" style="--i:7"><a class="link link7" href="#" >Ecosystem</a></div>
+                    <div class="span" style="--i:8"><a class="link link8" href="#" >Impact</a></div>
+                </div>
+    
+            </div>
+        </div>
+    </div>
+    <div class="container1 con2">
+        <div class="box">
+            <img class="logo1" id="logo1" src="images/vseaweedo white 3d.png" width="100%">
+        </div>
+    </div>
+    <section>
+        <div class="container2">
+            <div class="col">
+                <p class="para reveal">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quidem natus at sed consectetur possimus mollitia laborum minus officia explicabo earum incidunt deserunt quasi, vitae nostrum, voluptas illum ullam et saepe?</p>
+            </div>
+        </div>
+    </section>
+    <script>
+        function reveal(){
+            var r = document.querySelectorAll(".reveal");
+            for (var i=0; i < r.length; i++) {
+                console.log(r.length);
+                var wh = window.innerHeight;
+                var et = r[i].getBoundingClientRect().top;
+                var ev = 150;
+
+                if(et < wh - ev){
+                    r[i].classList.add("active");
+                }else{
+                    r[i].classList.remove("active");
+                }
+            }
+        }
+        window.addEventListener("scroll",reveal);
+    </script>
+</body>
+</html>
